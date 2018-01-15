@@ -6,22 +6,22 @@
 
 ## List below here, in a comment/comments, the people you worked with on this assignment AND any resources you used to find code (50 point deduction for not doing so). If none, write "None".
 
+# I worked with Frankie Antenucci and used the challenges.py file from discussion for some reference
+
 
 
 ## [PROBLEM 1] - 150 points
 ## Below is code for one of the simplest possible Flask applications. Edit the code so that once you run this application locally and go to the URL 'http://localhost:5000/class', you see a page that says "Welcome to SI 364!"
 
-from flask import Flask
+from flask import Flask, request
+import requests
+import json
 app = Flask(__name__)
 app.debug = True
 
 @app.route('/')
 def hello_to_you():
     return 'Hello!'
-
-
-if __name__ == '__main__':
-    app.run()
 
 
 ## [PROBLEM 2] - 250 points
@@ -38,12 +38,40 @@ if __name__ == '__main__':
 ## Of course, you'll also need the requests library and knowledge of how to make a request to a REST API for data.
 
 ## Run the app locally (repeatedly) and try these URLs out!
+@app.route('/movie/<movie_title>')
+def movie_data(movie_title):
+	r = requests.get('https://itunes.apple.com/search?', params={'term':movie_title, 'entity':'movie'})
+	return r.text
+
+
 
 ## [PROBLEM 3] - 250 points
 
 ## Edit the above Flask application code so that if you run the application locally and got to the URL http://localhost:5000/question, you see a form that asks you to enter your favorite number.
 ## Once you enter a number and submit it to the form, you should then see a web page that says "Double your favorite number is <number>". For example, if you enter 2 into the form, you should then see a page that says "Double your favorite number is 4". Careful about types in your Python code!
 ## You can assume a user will always enter a number only.
+@app.route('/question')
+def enter_number():
+	form_s = """
+	<!DOCTYPE html>
+	<html>
+	<body>
+	<form action='/result' method='post'>
+		Enter Favorite Number:<br>
+		<input type='text' name='number' value='0'>
+		<br>
+		<input type='submit' value='Submit'>
+	</form>
+	</body>
+	</html>"""
+	return form_s
+
+@app.route('/result',methods=['POST', 'GET'])
+def display_double():
+	if request.method == 'POST':
+		search = str(request.form['number'])
+		d_n = int(search)*2
+		return "<h1>Double your favorite number is {}</h1>".format(str(d_n))
 
 
 ## [PROBLEM 4] - 350 points
@@ -65,3 +93,40 @@ if __name__ == '__main__':
 # You can assume that a user will give you the type of input/response you expect in your form; you do not need to handle errors or user confusion. (e.g. if your form asks for a name, you can assume a user will type a reasonable name; if your form asks for a number, you can assume a user will type a reasonable number; if your form asks the user to select a checkbox, you can assume they will do that.)
 
 # Points will be assigned for each specification in the problem.
+@app.route('/problem4form', methods=['POST', 'GET'])
+def enter_favorite_movie():
+	movie_form = """
+	<!DOCTYPE html>
+	<html>
+	<body>
+	<form action = 'http://localhost:5000/problem4form' method='post'>
+		<input type='checkbox' name='likemovies' value='Yes'>
+		I like movies<br>
+		<input type='checkbox' name='lovemovies' value='Yes'>
+		I love movies<br>
+		<input type='checkbox' name='hatesmovies' value='Yes'>
+		I don't like movies<br>
+		Enter Favorite Movie:<br>
+		<input type='text' name='movie' value='enter name here'>
+		<br>
+		<input type='submit' value='Submit'>
+	</form>
+	</body>
+	</html>"""
+	if request.method == 'POST':
+		movie = str(request.form['movie'])
+		movie_info = requests.get('http://www.omdbapi.com/?i=tt3896198&apikey=f5fd6ada&', params={'t':movie})
+		move = json.loads(movie_info.text)
+		info_lst = []
+		title = move['Title']
+		info_lst.append(title)
+		plot = move['Plot']
+		info_lst.append(plot)
+		rating = move['imdbRating']
+		info_lst.append(rating)
+		return "<h1>Movie Title: {0}<br>Plot: {1}<br>Rating: {2}\n</h1>".format(*info_lst)+ movie_form
+	else:
+		return movie_form
+
+if __name__ == '__main__':
+    app.run()
